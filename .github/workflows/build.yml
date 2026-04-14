@@ -1,0 +1,44 @@
+name: 🚀 发布并推送发布分支
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write # 设置内容的权限为写
+  pull-requests: write # 设置拉取请求的权限为写
+  issues: write # 设置问题的权限为写
+
+jobs:
+  release-please:
+    # 设置工作流程运行环境为 Ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🧪 触发 release-please 发布检查
+        uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: .release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      - name: 📂 检出插件代码
+        if: ${{ steps.release.outputs.release_created }}
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: ⚙️ 设置 go 运行环境
+        if: ${{ steps.release.outputs.release_created }}
+        uses: actions/setup-go@v6
+
+      - name: 🛠️ 构建项目
+        if: ${{ steps.release.outputs.release_created }}
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
